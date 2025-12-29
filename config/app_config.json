@@ -4,8 +4,5 @@
     "pitch": 2.0,
     "volume": 1.0,
     "voice_model": "E:\\ai-models\\piper-voices\\zh\\zh_CN\\huayan\\medium\\zh_CN-huayan-medium.onnx"
-  },
-  "last_positions": {
-    "E:\\Desktop\\md\\发文时间.txt": 0
   }
 }

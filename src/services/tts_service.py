@@ -8,6 +8,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import datetime
+import io
 
 # Add the src directory to the path to enable imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -38,43 +39,22 @@ class TTSService:
         if voice_model:
             self.voice_model = voice_model
     
-    def synthesize_text(self, text, source_file_path=None):
-        """Convert text to speech using Piper TTS and return audio file path"""
+    def synthesize_text_to_memory(self, text):
+        """Convert text to speech using Piper TTS and return audio data in memory"""
         try:
             # Check if voice model is set
             if not self.voice_model:
                 raise RuntimeError("No voice model specified. Please set a voice model before synthesizing text.")
 
-            # Create voice directory structure
-            voice_dir = Path("voice")
-            voice_dir.mkdir(exist_ok=True)
-
-            # Get the source file name without extension for directory name
-            if source_file_path:
-                source_file_name = Path(source_file_path).stem
-            else:
-                source_file_name = "default"
-
-            # Create subdirectory for this specific text file
-            file_voice_dir = voice_dir / source_file_name
-            file_voice_dir.mkdir(exist_ok=True)
-
-            # Generate filename with current date and time
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            # Ensure unique filename by adding a counter if needed
-            counter = 1
-            while True:
-                audio_filename = f"{timestamp}{counter:02d}.wav"
-                audio_file_path = file_voice_dir / audio_filename
-                if not audio_file_path.exists():
-                    break
-                counter += 1
+            # Create a temporary file to receive the audio output from Piper
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_audio:
+                temp_audio_path = temp_audio.name
 
             # Prepare the Piper TTS command
             cmd = [
                 'piper',
                 '--model', self.voice_model,  # Model is now required
-                '--output_file', str(audio_file_path)  # Directly specify output file
+                '--output_file', temp_audio_path  # Directly specify output file
             ]
 
             # Add rate parameter if supported by Piper
@@ -92,23 +72,33 @@ class TTSService:
                 check=True  # This will raise an exception if the command fails
             )
 
-            # Verify that the output file was created and has content
-            if not os.path.exists(audio_file_path) or os.path.getsize(audio_file_path) == 0:
-                raise RuntimeError("Piper TTS generated an empty audio file")
+            # Read the audio data from the temporary file into memory
+            with open(temp_audio_path, 'rb') as f:
+                audio_data = f.read()
 
-            return str(audio_file_path)
+            # Clean up the temporary file immediately after reading
+            os.remove(temp_audio_path)
+
+            # Verify that we have audio data
+            if not audio_data or len(audio_data) == 0:
+                raise RuntimeError("Piper TTS generated empty audio data")
+
+            return audio_data
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Piper TTS failed: {e.stderr}")
         except FileNotFoundError:
             raise RuntimeError("Piper TTS not found. Please install Piper TTS from https://github.com/rhasspy/piper")
         except Exception as e:
             raise RuntimeError(f"TTS synthesis failed: {str(e)}")
-    
-    def play_audio(self, audio_file_path):
-        """Play the synthesized audio file"""
+
+    def play_audio_from_memory(self, audio_data):
+        """Play the synthesized audio data from memory"""
         try:
-            # Load and play the audio file with pygame
-            pygame.mixer.music.load(audio_file_path)
+            # Create a BytesIO object from the audio data
+            audio_buffer = io.BytesIO(audio_data)
+
+            # Load and play the audio data with pygame
+            pygame.mixer.music.load(audio_buffer)
             pygame.mixer.music.set_volume(self.volume)
             pygame.mixer.music.play()
 
@@ -121,13 +111,8 @@ class TTSService:
                 pygame.mixer.music.stop()
 
         except Exception as e:
-            raise RuntimeError(f"Failed to play audio file: {e}")
-        finally:
-            # Only clean up if the file is in the temp directory (not in the voice directory)
-            audio_path = Path(audio_file_path)
-            if 'temp' in str(audio_path) and audio_path.exists():
-                os.remove(audio_file_path)
-    
+            raise RuntimeError(f"Failed to play audio from memory: {e}")
+
     def speak_text(self, text, source_file_path=None):
         """Synthesize and play text directly"""
         if not text.strip():
@@ -144,11 +129,10 @@ class TTSService:
                 break
 
             if chunk.strip():
-                # Synthesize the text chunk to audio
-                audio_file_path = self.synthesize_text(chunk, source_file_path)
-                print("audio_file_path1", audio_file_path)
-                # Play the audio
-                self.play_audio(audio_file_path)
+                # Synthesize the text chunk to audio data in memory
+                audio_data = self.synthesize_text_to_memory(chunk)
+                # Play the audio from memory
+                self.play_audio_from_memory(audio_data)
     
     def start_streaming_speech(self, text_generator, source_file_path=None):
         """Start streaming speech from a text generator"""
@@ -175,9 +159,8 @@ class TTSService:
             # Synthesize and play the text chunk
             try:
                 if text_chunk.strip():
-                    audio_file_path = self.synthesize_text(text_chunk, source_file_path)
-                    print("audio_file_path", audio_file_path)
-                    self.play_audio(audio_file_path)
+                    audio_data = self.synthesize_text_to_memory(text_chunk)
+                    self.play_audio_from_memory(audio_data)
             except Exception as e:
                 print(f"Error during speech synthesis/playback: {e}")
                 break

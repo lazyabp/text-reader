@@ -77,8 +77,8 @@ class MainController:
                         if current_file:
                             self.config_service.set_last_position(current_file, current_pos)
 
-                        # Speak the sentence chunk with source file path
-                        self.tts_service.speak_text(sentence_chunk, self.file_service.file_path)
+                        # Speak the sentence chunk
+                        self.tts_service.speak_text(sentence_chunk)
 
                         # Update position for next iteration
                         current_pos += sentence_bytes
