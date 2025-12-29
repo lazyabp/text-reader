@@ -7,6 +7,7 @@ import time
 import os
 import sys
 from pathlib import Path
+from datetime import datetime
 
 # Add the src directory to the path to enable imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -37,22 +38,43 @@ class TTSService:
         if voice_model:
             self.voice_model = voice_model
     
-    def synthesize_text(self, text):
+    def synthesize_text(self, text, source_file_path=None):
         """Convert text to speech using Piper TTS and return audio file path"""
         try:
             # Check if voice model is set
             if not self.voice_model:
                 raise RuntimeError("No voice model specified. Please set a voice model before synthesizing text.")
 
-            # Create a temporary file for the audio output
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_audio:
-                temp_audio_path = temp_audio.name
+            # Create voice directory structure
+            voice_dir = Path("voice")
+            voice_dir.mkdir(exist_ok=True)
+
+            # Get the source file name without extension for directory name
+            if source_file_path:
+                source_file_name = Path(source_file_path).stem
+            else:
+                source_file_name = "default"
+
+            # Create subdirectory for this specific text file
+            file_voice_dir = voice_dir / source_file_name
+            file_voice_dir.mkdir(exist_ok=True)
+
+            # Generate filename with current date and time
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            # Ensure unique filename by adding a counter if needed
+            counter = 1
+            while True:
+                audio_filename = f"{timestamp}{counter:02d}.wav"
+                audio_file_path = file_voice_dir / audio_filename
+                if not audio_file_path.exists():
+                    break
+                counter += 1
 
             # Prepare the Piper TTS command
             cmd = [
                 'piper',
                 '--model', self.voice_model,  # Model is now required
-                '--output_file', temp_audio_path  # Directly specify output file
+                '--output_file', str(audio_file_path)  # Directly specify output file
             ]
 
             # Add rate parameter if supported by Piper
@@ -71,10 +93,10 @@ class TTSService:
             )
 
             # Verify that the output file was created and has content
-            if not os.path.exists(temp_audio_path) or os.path.getsize(temp_audio_path) == 0:
+            if not os.path.exists(audio_file_path) or os.path.getsize(audio_file_path) == 0:
                 raise RuntimeError("Piper TTS generated an empty audio file")
 
-            return temp_audio_path
+            return str(audio_file_path)
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Piper TTS failed: {e.stderr}")
         except FileNotFoundError:
@@ -101,11 +123,12 @@ class TTSService:
         except Exception as e:
             raise RuntimeError(f"Failed to play audio file: {e}")
         finally:
-            # Clean up the temporary audio file after playing
-            if os.path.exists(audio_file_path):
+            # Only clean up if the file is in the temp directory (not in the voice directory)
+            audio_path = Path(audio_file_path)
+            if 'temp' in str(audio_path) and audio_path.exists():
                 os.remove(audio_file_path)
     
-    def speak_text(self, text):
+    def speak_text(self, text, source_file_path=None):
         """Synthesize and play text directly"""
         if not text.strip():
             return
@@ -122,37 +145,37 @@ class TTSService:
 
             if chunk.strip():
                 # Synthesize the text chunk to audio
-                audio_file_path = self.synthesize_text(chunk)
+                audio_file_path = self.synthesize_text(chunk, source_file_path)
                 print("audio_file_path1", audio_file_path)
                 # Play the audio
                 self.play_audio(audio_file_path)
     
-    def start_streaming_speech(self, text_generator):
+    def start_streaming_speech(self, text_generator, source_file_path=None):
         """Start streaming speech from a text generator"""
         if self.playback_thread and self.playback_thread.is_alive():
             self.stop_signal.set()
             self.playback_thread.join(timeout=2)
-        
+
         self.stop_signal.clear()
         self.is_playing_flag = True
-        
+
         self.playback_thread = threading.Thread(
             target=self._streaming_worker,
-            args=(text_generator,)
+            args=(text_generator, source_file_path)
         )
         self.playback_thread.daemon = True
         self.playback_thread.start()
     
-    def _streaming_worker(self, text_generator):
+    def _streaming_worker(self, text_generator, source_file_path=None):
         """Worker thread for streaming speech"""
         for text_chunk in text_generator:
             if self.stop_signal.is_set():
                 break
-            
+
             # Synthesize and play the text chunk
             try:
                 if text_chunk.strip():
-                    audio_file_path = self.synthesize_text(text_chunk)
+                    audio_file_path = self.synthesize_text(text_chunk, source_file_path)
                     print("audio_file_path", audio_file_path)
                     self.play_audio(audio_file_path)
             except Exception as e:
