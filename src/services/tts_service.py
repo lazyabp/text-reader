@@ -40,6 +40,10 @@ class TTSService:
     def synthesize_text(self, text):
         """Convert text to speech using Piper TTS and return audio file path"""
         try:
+            # Check if voice model is set
+            if not self.voice_model:
+                raise RuntimeError("No voice model specified. Please set a voice model before synthesizing text.")
+
             # Create a temporary file for the audio output
             with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as temp_audio:
                 temp_audio_path = temp_audio.name
@@ -47,6 +51,7 @@ class TTSService:
             # Prepare the Piper TTS command
             cmd = [
                 'piper',
+                '--model', self.voice_model,  # Model is now required
                 '--stdout'
             ]
 
@@ -55,10 +60,6 @@ class TTSService:
             # similar effect with --length-scale
             length_scale = 1.0 / self.rate if self.rate != 0 else 1.0
             cmd.extend(['--length-scale', str(length_scale)])
-
-            # Add voice model if specified
-            if self.voice_model:
-                cmd.extend(['--model', self.voice_model])
 
             # Execute Piper TTS with the text
             proc = subprocess.run(
@@ -119,7 +120,7 @@ class TTSService:
             if chunk.strip():
                 # Synthesize the text chunk to audio
                 audio_file_path = self.synthesize_text(chunk)
-
+                print("audio_file_path1", audio_file_path)
                 # Play the audio
                 self.play_audio(audio_file_path)
     
@@ -149,6 +150,7 @@ class TTSService:
             try:
                 if text_chunk.strip():
                     audio_file_path = self.synthesize_text(text_chunk)
+                    print("audio_file_path", audio_file_path)
                     self.play_audio(audio_file_path)
             except Exception as e:
                 print(f"Error during speech synthesis/playback: {e}")

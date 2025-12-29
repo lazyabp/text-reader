@@ -23,11 +23,11 @@ class TTSApp:
         self.config_service = ConfigService()
         self.file_service = FileService()
         self.tts_service = TTSService()
-        
+
         # Initialize controller
         self.controller = MainController(
-            self.file_service, 
-            self.tts_service, 
+            self.file_service,
+            self.tts_service,
             self.config_service
         )
         
@@ -87,51 +87,59 @@ class TTSApp:
         # TTS Configuration section
         tts_frame = ttk.LabelFrame(main_frame, text="TTS Configuration", padding="10")
         tts_frame.grid(row=2, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5)
-        
+
+        # Voice model selection
+        ttk.Label(tts_frame, text="Voice Model:").grid(row=0, column=0, sticky=tk.W)
+        self.voice_model_var = tk.StringVar()
+        self.voice_model_entry = ttk.Entry(tts_frame, textvariable=self.voice_model_var)
+        self.voice_model_entry.grid(row=0, column=1, columnspan=2, sticky=(tk.W, tk.E), pady=5)
+        # Add tooltip or placeholder text to indicate where to find voice models
+        self.voice_model_entry.insert(0, "Enter path to voice model (.onnx file)")
+
         # Speed control
-        ttk.Label(tts_frame, text="Speed:").grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(tts_frame, text="Speed:").grid(row=1, column=0, sticky=tk.W)
         self.speed_var = tk.DoubleVar(value=1.0)
         speed_scale = ttk.Scale(
-            tts_frame, 
-            from_=0.5, 
-            to=2.0, 
-            orient=tk.HORIZONTAL, 
+            tts_frame,
+            from_=0.5,
+            to=2.0,
+            orient=tk.HORIZONTAL,
             variable=self.speed_var,
             command=self.on_speed_change
         )
-        speed_scale.grid(row=0, column=1, sticky=(tk.W, tk.E), padx=5)
+        speed_scale.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=5)
         self.speed_value_label = ttk.Label(tts_frame, text=f"{self.speed_var.get():.1f}")
-        self.speed_value_label.grid(row=0, column=2, padx=5)
-        
+        self.speed_value_label.grid(row=1, column=2, padx=5)
+
         # Pitch control
-        ttk.Label(tts_frame, text="Pitch:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(tts_frame, text="Pitch:").grid(row=2, column=0, sticky=tk.W)
         self.pitch_var = tk.DoubleVar(value=1.0)
         pitch_scale = ttk.Scale(
-            tts_frame, 
-            from_=0.5, 
-            to=2.0, 
-            orient=tk.HORIZONTAL, 
+            tts_frame,
+            from_=0.5,
+            to=2.0,
+            orient=tk.HORIZONTAL,
             variable=self.pitch_var,
             command=self.on_pitch_change
         )
-        pitch_scale.grid(row=1, column=1, sticky=(tk.W, tk.E), padx=5)
+        pitch_scale.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=5)
         self.pitch_value_label = ttk.Label(tts_frame, text=f"{self.pitch_var.get():.1f}")
-        self.pitch_value_label.grid(row=1, column=2, padx=5)
-        
+        self.pitch_value_label.grid(row=2, column=2, padx=5)
+
         # Volume control
-        ttk.Label(tts_frame, text="Volume:").grid(row=2, column=0, sticky=tk.W)
+        ttk.Label(tts_frame, text="Volume:").grid(row=3, column=0, sticky=tk.W)
         self.volume_var = tk.DoubleVar(value=1.0)
         volume_scale = ttk.Scale(
-            tts_frame, 
-            from_=0.0, 
-            to=1.0, 
-            orient=tk.HORIZONTAL, 
+            tts_frame,
+            from_=0.0,
+            to=1.0,
+            orient=tk.HORIZONTAL,
             variable=self.volume_var,
             command=self.on_volume_change
         )
-        volume_scale.grid(row=2, column=1, sticky=(tk.W, tk.E), padx=5)
+        volume_scale.grid(row=3, column=1, sticky=(tk.W, tk.E), padx=5)
         self.volume_value_label = ttk.Label(tts_frame, text=f"{self.volume_var.get():.1f}")
-        self.volume_value_label.grid(row=2, column=2, padx=5)
+        self.volume_value_label.grid(row=3, column=2, padx=5)
         
         # Playback controls
         ctrl_frame = ttk.Frame(main_frame)
@@ -148,20 +156,25 @@ class TTSApp:
     def load_configuration(self):
         """Load saved configuration"""
         config = self.config_service.load_config()
-        
+
         # Load TTS parameters
         if 'tts_params' in config:
             params = config['tts_params']
             self.speed_var.set(params.get('rate', 1.0))
             self.pitch_var.set(params.get('pitch', 1.0))
             self.volume_var.set(params.get('volume', 1.0))
+            # Load voice model if available
+            voice_model = params.get('voice_model', '')
+            self.voice_model_var.set(voice_model)
+
             self.update_tts_param_labels()
-            
+
             # Apply parameters to TTS service
             self.tts_service.set_parameters(
                 rate=params.get('rate', 1.0),
                 pitch=params.get('pitch', 1.0),
-                volume=params.get('volume', 1.0)
+                volume=params.get('volume', 1.0),
+                voice_model=voice_model
             )
     
     def save_configuration(self):
@@ -170,7 +183,8 @@ class TTSApp:
             'tts_params': {
                 'rate': self.speed_var.get(),
                 'pitch': self.pitch_var.get(),
-                'volume': self.volume_var.get()
+                'volume': self.volume_var.get(),
+                'voice_model': self.voice_model_var.get()
             }
         }
         self.config_service.save_config(config)
@@ -252,7 +266,8 @@ class TTSApp:
         self.tts_service.set_parameters(
             rate=self.speed_var.get(),
             pitch=self.pitch_var.get(),
-            volume=self.volume_var.get()
+            volume=self.volume_var.get(),
+            voice_model=self.voice_model_var.get()
         )
     
     def toggle_playback(self):

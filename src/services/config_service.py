@@ -15,7 +15,8 @@ class ConfigService:
             "tts_params": {
                 "rate": 1.0,
                 "pitch": 1.0,
-                "volume": 1.0
+                "volume": 1.0,
+                "voice_model": ""  # Default to empty, user needs to specify
             },
             "last_positions": {}
         }

@@ -15,8 +15,10 @@ A Python-based application for reading text files aloud with Piper TTS, featurin
 
 1. **Python 3.8 or higher**
 2. **Piper TTS** - Install from: https://github.com/rhasspy/piper
-   - Download a voice model from the available options
    - Ensure `piper` is available in your PATH
+3. **Voice Model** - Download a voice model file (.onnx) from Piper's releases
+   - Visit https://github.com/rhasspy/piper/releases to download a voice model
+   - Note the path to the model file as you'll need to enter it in the application UI
 
 ## Installation
 
@@ -26,7 +28,7 @@ A Python-based application for reading text files aloud with Piper TTS, featurin
    pip install -r requirements.txt
    ```
 3. Install Piper TTS according to the official documentation
-4. Download a voice model for Piper TTS
+4. Download a voice model for Piper TTS from https://github.com/rhasspy/piper/releases
 
 ## Usage
 
@@ -35,13 +37,15 @@ A Python-based application for reading text files aloud with Piper TTS, featurin
    python src/main.py
    ```
 
-2. Click "Select File" to choose a text file to read
+2. In the "TTS Configuration" section, enter the path to your Piper voice model file (.onnx)
 
-3. Adjust the reading position using the slider or by entering a value
+3. Click "Select File" to choose a text file to read
 
-4. Configure TTS parameters (speed, pitch, volume) as needed
+4. Adjust the reading position using the slider or by entering a value
 
-5. Click "Play" to start reading from the selected position
+5. Configure TTS parameters (speed, pitch, volume) as needed
+
+6. Click "Play" to start reading from the selected position
 
 ## Configuration
 
