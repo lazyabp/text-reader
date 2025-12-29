@@ -52,7 +52,7 @@ class TTSService:
             cmd = [
                 'piper',
                 '--model', self.voice_model,  # Model is now required
-                '--stdout'
+                '--output_file', temp_audio_path  # Directly specify output file
             ]
 
             # Add rate parameter if supported by Piper
@@ -65,15 +65,18 @@ class TTSService:
             proc = subprocess.run(
                 cmd,
                 input=text,
-                stdout=open(temp_audio_path, 'wb'),
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                check=True  # This will raise an exception if the command fails
             )
 
-            if proc.returncode != 0:
-                raise RuntimeError(f"Piper TTS failed: {proc.stderr}")
+            # Verify that the output file was created and has content
+            if not os.path.exists(temp_audio_path) or os.path.getsize(temp_audio_path) == 0:
+                raise RuntimeError("Piper TTS generated an empty audio file")
 
             return temp_audio_path
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"Piper TTS failed: {e.stderr}")
         except FileNotFoundError:
             raise RuntimeError("Piper TTS not found. Please install Piper TTS from https://github.com/rhasspy/piper")
         except Exception as e:
