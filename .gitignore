@@ -1,0 +1,7 @@
+__pycache__/
+__pypackages__/
+build/
+dist/
+config/
+.vscode/
+.pytest_cache/

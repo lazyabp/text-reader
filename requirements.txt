@@ -1,0 +1,19 @@
+# Requirements for Text-to-Speech Reader Application
+
+# Note: Piper TTS needs to be installed separately as it's not available via pip
+# See https://github.com/rhasspy/piper for installation instructions
+
+# For audio playback
+pygame==2.5.2
+
+# For advanced audio processing (optional)
+pyaudio==0.2.11
+
+# For handling various audio formats
+pydub==0.25.1
+
+# For GUI
+tkinter  # Built-in with Python
+
+# For text processing
+regex==2023.10.3

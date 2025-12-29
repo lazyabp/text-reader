@@ -1,0 +1,12 @@
+This is a test text file for the Text-to-Speech Reader Application.
+
+The purpose of this file is to test that the application can properly read and speak text files aloud using Piper TTS.
+
+It includes multiple sentences to test the text splitting functionality:
+This is the first sentence. This is the second sentence! And this is the third one?
+
+The application should be able to handle different punctuation marks and read the text naturally.
+
+Additionally, it should properly track the reading position so that when you restart the application and load the same file, it remembers where you left off.
+
+This functionality is important for users who are reading long documents and need to pick up where they left off.
