@@ -97,18 +97,16 @@ class TTSService:
             # Create a BytesIO object from the audio data
             audio_buffer = io.BytesIO(audio_data)
 
-            # Load and play the audio data with pygame
-            pygame.mixer.music.load(audio_buffer)
-            pygame.mixer.music.set_volume(self.volume)
-            pygame.mixer.music.play()
+            # Create a temporary Sound object from the buffer
+            # We'll use pygame's Sound class which can work with file-like objects
+            sound = pygame.mixer.Sound(audio_buffer)
+
+            # Play the sound
+            sound.play()
 
             # Wait for the audio to finish playing
-            while pygame.mixer.music.get_busy() and not self.stop_signal.is_set():
+            while sound.get_num_channels() > 0 and not self.stop_signal.is_set():
                 pygame.time.wait(100)  # Check every 100ms if playback should stop
-
-            # Stop the music if the stop signal was received
-            if self.stop_signal.is_set():
-                pygame.mixer.music.stop()
 
         except Exception as e:
             raise RuntimeError(f"Failed to play audio from memory: {e}")

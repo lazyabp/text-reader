@@ -1,7 +1,7 @@
 {
   "tts_params": {
-    "rate": 2.0,
-    "pitch": 2.0,
+    "rate": 1.3352272727272727,
+    "pitch": 1.6761363636363635,
     "volume": 1.0,
     "voice_model": "E:\\ai-models\\piper-voices\\zh\\zh_CN\\huayan\\medium\\zh_CN-huayan-medium.onnx"
   }
