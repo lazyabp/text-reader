@@ -72,16 +72,16 @@ class MainController:
                         # Calculate the new position after processing this sentence
                         sentence_bytes = len(sentence_chunk.encode('utf-8'))
 
-                        # Update the last known position in config service
+                        # Speak the sentence chunk with sync playback to ensure position updates correctly
+                        self.tts_service.speak_text(sentence_chunk, sync_playback=True)
+
+                        # Update position for next iteration after the audio has played
+                        current_pos += sentence_bytes
+
+                        # Update the last known position in config service after audio playback
                         current_file = self.file_service.file_path
                         if current_file:
                             self.config_service.set_last_position(current_file, current_pos)
-
-                        # Speak the sentence chunk
-                        self.tts_service.speak_text(sentence_chunk)
-
-                        # Update position for next iteration
-                        current_pos += sentence_bytes
 
                 # Check if playback should stop
                 if self.stop_playback_event.is_set():

@@ -111,7 +111,7 @@ class TTSService:
         except Exception as e:
             raise RuntimeError(f"Failed to play audio from memory: {e}")
 
-    def speak_text(self, text, source_file_path=None):
+    def speak_text(self, text, source_file_path=None, sync_playback=True):
         """Synthesize and play text directly"""
         if not text.strip():
             return
@@ -131,6 +131,13 @@ class TTSService:
                 audio_data = self.synthesize_text_to_memory(chunk)
                 # Play the audio from memory
                 self.play_audio_from_memory(audio_data)
+
+                # Wait for the audio to finish playing before continuing if sync_playback is True
+                if sync_playback:
+                    # Wait for the audio to finish playing before continuing
+                    # This ensures proper synchronization with the playback
+                    while pygame.mixer.get_busy() and not self.stop_signal.is_set():
+                        pygame.time.wait(100)  # Check every 100ms if playback should stop
     
     def start_streaming_speech(self, text_generator, source_file_path=None):
         """Start streaming speech from a text generator"""
@@ -159,6 +166,10 @@ class TTSService:
                 if text_chunk.strip():
                     audio_data = self.synthesize_text_to_memory(text_chunk)
                     self.play_audio_from_memory(audio_data)
+
+                    # Wait for the audio to finish playing before continuing
+                    while pygame.mixer.get_busy() and not self.stop_signal.is_set():
+                        pygame.time.wait(100)  # Check every 100ms if playback should stop
             except Exception as e:
                 print(f"Error during speech synthesis/playback: {e}")
                 break
